@@ -1,0 +1,26 @@
+resources
+| where type == "microsoft.cognitiveservices/accounts"
+| where kind == "OpenAI"
+| extend 
+    serviceName = name,
+    skuName = sku.name,
+    endpoint = properties.endpoint,
+    customSubDomain = properties.customSubDomainName,
+    deployments = properties.capabilities
+| extend baseEstimatedCost = case(
+    skuName == "S0", 500.0,
+    skuName == "S1", 1000.0,
+    200.0
+)
+| project 
+    serviceName,
+    resourceGroup,
+    location,
+    subscriptionId,
+    skuName,
+    endpoint,
+    customSubDomain,
+    baseEstimatedCost,
+    tags,
+    properties
+| order by baseEstimatedCost desc
