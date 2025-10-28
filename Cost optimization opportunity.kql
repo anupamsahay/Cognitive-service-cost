@@ -1,0 +1,27 @@
+resources
+| where type == "microsoft.cognitiveservices/accounts"
+| where sku.name == "S0" or sku.name == "S1"
+| extend 
+    serviceName = name,
+    serviceKind = kind,
+    skuName = sku.name,
+    currentCost = case(
+        kind == "OpenAI", 500.0,
+        kind == "ComputerVision", 100.0,
+        75.0
+    ),
+    potentialSavingsIfDowngraded = case(
+        kind == "OpenAI", 300.0,
+        kind == "ComputerVision", 80.0,
+        50.0
+    )
+| project 
+    serviceName,
+    serviceKind,
+    resourceGroup,
+    location,
+    skuName,
+    currentCost,
+    potentialSavingsIfDowngraded,
+    tags
+| order by potentialSavingsIfDowngraded desc
