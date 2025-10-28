@@ -1,0 +1,34 @@
+resources
+| where type == "microsoft.machinelearningservices/workspaces"
+| extend 
+    workspaceName = name,
+    skuName = sku.name,
+    skuTier = sku.tier,
+    storageAccount = properties.storageAccount,
+    keyVault = properties.keyVault,
+    applicationInsights = properties.applicationInsights,
+    containerRegistry = properties.containerRegistry,
+    hbiWorkspace = properties.hbiWorkspace,
+    publicNetworkAccess = properties.publicNetworkAccess
+| extend estimatedMonthlyCost = case(
+    skuName == "Basic", 100.0,
+    skuName == "Enterprise", 500.0,
+    200.0
+)
+| project 
+    workspaceName,
+    resourceGroup,
+    location,
+    subscriptionId,
+    skuName,
+    skuTier,
+    storageAccount,
+    keyVault,
+    applicationInsights,
+    containerRegistry,
+    hbiWorkspace,
+    publicNetworkAccess,
+    estimatedMonthlyCost,
+    tags,
+    properties
+| order by estimatedMonthlyCost desc
