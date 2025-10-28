@@ -1,0 +1,61 @@
+resources
+| where type in (
+    "microsoft.cognitiveservices/accounts",
+    "microsoft.machinelearningservices/workspaces",
+    "microsoft.machinelearningservices/workspaces/computes",
+    "microsoft.search/searchservices",
+    "microsoft.botservice/botservices"
+)
+| extend 
+    serviceType = case(
+        type == "microsoft.cognitiveservices/accounts", "Cognitive Services",
+        type == "microsoft.machinelearningservices/workspaces", "ML Workspace",
+        type == "microsoft.machinelearningservices/workspaces/computes", "ML Compute",
+        type == "microsoft.search/searchservices", "Cognitive Search",
+        type == "microsoft.botservice/botservices", "Bot Service",
+        "Other"
+    ),
+    serviceName = name,
+    kind = kind,
+    skuName = sku.name,
+    estimatedCost = case(
+        type == "microsoft.cognitiveservices/accounts" and kind == "OpenAI", 500.0,
+        type == "microsoft.cognitiveservices/accounts" and kind == "ComputerVision", 100.0,
+        type == "microsoft.cognitiveservices/accounts" and kind == "SpeechServices", 150.0,
+        type == "microsoft.cognitiveservices/accounts", 75.0,
+        type == "microsoft.machinelearningservices/workspaces", 200.0,
+        type == "microsoft.machinelearningservices/workspaces/computes", 300.0,
+        type == "microsoft.search/searchservices", 250.0,
+        type == "microsoft.botservice/botservices", 50.0,
+        50.0
+    )
+| project 
+    serviceType,
+    serviceName,
+    kind,
+    skuName,
+    resourceGroup,
+    location,
+    subscriptionId,
+    estimatedCost,
+    tags
+| summarize 
+    TotalResources = count(),
+    TotalEstimatedMonthlyCost = sum(estimatedCost),
+    MinCost = min(estimatedCost),
+    MaxCost = max(estimatedCost),
+    AvgCost = avg(estimatedCost)
+    by serviceType, subscriptionId
+| extend CostPercentage = round(100.0 * TotalEstimatedMonthlyCost / toscalar(
+    resources 
+    | where type in (
+        "microsoft.cognitiveservices/accounts",
+        "microsoft.machinelearningservices/workspaces",
+        "microsoft.machinelearningservices/workspaces/computes",
+        "microsoft.search/searchservices",
+        "microsoft.botservice/botservices"
+    )
+    | extend estimatedCost = 100.0
+    | summarize sum(estimatedCost)
+), 2)
+| order by TotalEstimatedMonthlyCost desc
